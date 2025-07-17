@@ -1240,17 +1240,46 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
             className="relative"
             style={{ width: "440px", height: "550px" }}
           >
-            <img
-              src="/assets/BluePatch.png"
-              alt="Chamking"
-              className="absolute inset-0 w-full h-full object-cover  z-10"
-            />
             {/* Polaroid Frame Background */}
             <img
               src="/assets/enddummy.png"
               alt="Polaroid Frame"
-              className="absolute inset-0 w-full h-full object-cover z-50"
+              className="absolute inset-0 w-full h-full object-cover z-10"
               // style={{ width: "400px", height: "550px" }}
+            />
+
+            <img
+              src="/assets/red-man.png"
+              alt="Chamking"
+              className="absolute z-30"
+              style={{
+                // top: "93px",
+                // width: "60px",
+                // height: "60px",
+                // objectFit: "contain",
+                // scale: "5.5",
+                // left: "107px",
+                top: "95px",
+                width: "60px",
+                height: "60px",
+                objectFit: "contain",
+                scale: "5.5",
+                left: "122px",
+              }}
+            />
+
+            <img
+              src="/assets/chamking-whatta.png"
+              alt="Chamking"
+              className="absolute z-30"
+              style={{
+                top: "44px",
+                right: "100px",
+                width: "60px",
+                height: "60px",
+                objectFit: "contain",
+                scale: "4.5",
+              }}
             />
 
             {/* Background-Removed Photo (positioned in the blue area) */}
@@ -1281,6 +1310,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
                 }}
               />
             )}
+
             {/* Fallback: Original photo if background removal failed */}
             {!backgroundRemovedPhoto && userPhoto && (
               <img
@@ -1303,6 +1333,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
                 }}
               />
             )}
+
             {/* Double Fallback: Show just the frame if no photos */}
             {!backgroundRemovedPhoto && !userPhoto && (
               <div
