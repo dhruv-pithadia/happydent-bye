@@ -791,7 +791,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
 
       console.log("🔥 Step 3: Load both lenses...");
       const actualLensGroupId = "b2aafdd8-cb11-4817-9df9-835b36d9d5a7";
-      const lessLensId = "a9fc3b3e-315a-4053-bbea-d21d1f25090f";
+      const lessLensId = "0eeedbf6-a026-4224-9942-554f7cd71ebf";
       const moreLensId = "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
       // Load both lenses
@@ -1064,7 +1064,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
       "less";
     const appliedLensId =
       appliedGroupSize === "less"
-        ? "a9fc3b3e-315a-4053-bbea-d21d1f25090f"
+        ? "0eeedbf6-a026-4224-9942-554f7cd71ebf"
         : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
     onComplete({
@@ -1329,7 +1329,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
           "less";
         const appliedLensId =
           appliedGroupSize === "less"
-            ? "a9fc3b3e-315a-4053-bbea-d21d1f25090f"
+            ? "0eeedbf6-a026-4224-9942-554f7cd71ebf"
             : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
         setTimeout(() => {
