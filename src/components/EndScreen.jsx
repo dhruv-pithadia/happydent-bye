@@ -87,6 +87,71 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
     }
   };
 
+  // useEffect(() => {
+  //   // Get user info from localStorage
+  //   const phone = localStorage.getItem("userPhone");
+  //   const userId = localStorage.getItem("userId");
+  //   const userName = localStorage.getItem("userName");
+
+  //   // Get lens selection info
+  //   const selectedGroupSize = localStorage.getItem("selectedGroupSize");
+  //   const selectedLensId =
+  //     selectedGroupSize === "less"
+  //       ? "a4c89dd6-7e7a-4ec2-8390-9df9545b5994"
+  //       : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
+
+  //   if (phone && userId && userName) {
+  //     setUserInfo({ phone, userId, userName });
+  //     setLensInfo({
+  //       groupSize: selectedGroupSize || "less",
+  //       lensId: selectedLensId,
+  //     });
+
+  //     // Get current counter and construct the correct image URL
+  //     const currentCounter = localStorage.getItem("photoCounter") || "0";
+  //     console.log("📷 Current photo counter:", currentCounter);
+
+  //     // NEW: Get background-removed photo URL
+  //     const backgroundRemovedUrl = localStorage.getItem("userPhotoBgRemoved");
+  //     if (backgroundRemovedUrl) {
+  //       setBackgroundRemovedPhoto(backgroundRemovedUrl);
+  //       console.log("🎨 Background-removed photo found:", backgroundRemovedUrl);
+  //     }
+
+  //     // Check if we have a cached URL first
+  //     const cachedImageUrl = localStorage.getItem("userPhoto");
+
+  //     if (cachedImageUrl) {
+  //       console.log("📷 Using cached image URL:", cachedImageUrl);
+  //       const cacheBustedUrl = `${cachedImageUrl}?counter=${currentCounter}&t=${Date.now()}`;
+  //       setUserPhoto(cacheBustedUrl);
+  //       setPhotoInfo({ hasPhoto: true, imageUrl: cacheBustedUrl });
+  //     } else {
+  //       console.log(
+  //         "📷 No cached URL, constructing expected URL with counter:",
+  //         currentCounter
+  //       );
+  //       const expectedImageUrl = `https://artmetech.co.in/api/uploads/enhanced_polaroid_${phone}_${currentCounter}.png?t=${Date.now()}`;
+  //       console.log("📷 Expected image URL:", expectedImageUrl);
+
+  //       const img = new Image();
+  //       img.onload = () => {
+  //         console.log("✅ Expected image loaded successfully");
+  //         setUserPhoto(expectedImageUrl);
+  //         setPhotoInfo({ hasPhoto: true, imageUrl: expectedImageUrl });
+  //         localStorage.setItem("userPhoto", expectedImageUrl.split("?")[0]);
+  //       };
+  //       img.onerror = () => {
+  //         console.log("❌ Expected image failed, trying API fallback...");
+  //         fetchUserPhoto(phone);
+  //       };
+  //       img.src = expectedImageUrl;
+  //     }
+  //   }
+  // }, []);
+
+  // Fetch user photo from server
+
   useEffect(() => {
     // Get user info from localStorage
     const phone = localStorage.getItem("userPhone");
@@ -111,14 +176,14 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
       const currentCounter = localStorage.getItem("photoCounter") || "0";
       console.log("📷 Current photo counter:", currentCounter);
 
-      // NEW: Get background-removed photo URL
+      // 🔧 FIXED: Get background-removed photo URL from localStorage (set by AR component)
       const backgroundRemovedUrl = localStorage.getItem("userPhotoBgRemoved");
       if (backgroundRemovedUrl) {
         setBackgroundRemovedPhoto(backgroundRemovedUrl);
         console.log("🎨 Background-removed photo found:", backgroundRemovedUrl);
       }
 
-      // Check if we have a cached URL first
+      // 🔧 FIXED: Check if we have a cached URL first, but add fresh cache busting
       const cachedImageUrl = localStorage.getItem("userPhoto");
 
       if (cachedImageUrl) {
@@ -131,7 +196,8 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
           "📷 No cached URL, constructing expected URL with counter:",
           currentCounter
         );
-        const expectedImageUrl = `https://artmetech.co.in/api/uploads/enhanced_polaroid_${phone}_${currentCounter}.png?t=${Date.now()}`;
+        // 🔧 FIXED: Look for the screenshot that was uploaded from AR component
+        const expectedImageUrl = `https://artmetech.co.in/api/uploads/${phone}_screenshot_${currentCounter}.png?t=${Date.now()}`;
         console.log("📷 Expected image URL:", expectedImageUrl);
 
         const img = new Image();
@@ -150,7 +216,39 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
     }
   }, []);
 
-  // Fetch user photo from server
+  // const fetchUserPhoto = async (phone) => {
+  //   try {
+  //     setIsLoading(true);
+  //     console.log("📷 Fetching photo from API for phone:", phone);
+
+  //     const response = await fetch(
+  //       `https://artmetech.co.in/api/user/${phone}/photo`
+  //     );
+  //     const data = await response.json();
+
+  //     if (response.ok && data.success) {
+  //       setPhotoInfo(data.data);
+  //       if (data.data.hasPhoto) {
+  //         const currentCounter = localStorage.getItem("photoCounter") || "0";
+  //         const cacheBustedUrl = `${data.data.imageUrl
+  //           }?counter=${currentCounter}&t=${Date.now()}`;
+  //         console.log(
+  //           "📷 API returned image, adding cache busting:",
+  //           cacheBustedUrl
+  //         );
+  //         setUserPhoto(cacheBustedUrl);
+  //         localStorage.setItem("userPhoto", data.data.imageUrl);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching photo:", error);
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  // Download photo function
+
   const fetchUserPhoto = async (phone) => {
     try {
       setIsLoading(true);
@@ -165,14 +263,14 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         setPhotoInfo(data.data);
         if (data.data.hasPhoto) {
           const currentCounter = localStorage.getItem("photoCounter") || "0";
-          const cacheBustedUrl = `${data.data.imageUrl
-            }?counter=${currentCounter}&t=${Date.now()}`;
-          console.log(
-            "📷 API returned image, adding cache busting:",
-            cacheBustedUrl
-          );
-          setUserPhoto(cacheBustedUrl);
-          localStorage.setItem("userPhoto", data.data.imageUrl);
+
+          // 🔧 FIXED: Don't cache the URL, use fresh counter-based URL
+          const freshUrl = `${data.data.imageUrl}?counter=${currentCounter}&t=${Date.now()}`;
+          console.log("📷 API returned image with fresh counter:", freshUrl);
+
+          setUserPhoto(freshUrl);
+          // 🔧 FIXED: Don't store in localStorage to prevent caching issues
+          // localStorage.setItem("userPhoto", data.data.imageUrl);
         }
       }
     } catch (error) {
@@ -182,7 +280,6 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
     }
   };
 
-  // Download photo function
   const downloadPhoto = async () => {
     if (!userInfo?.phone) {
       setError("User information not found. Please register again.");
@@ -264,6 +361,181 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
   //   }
   // };
 
+  // const handleDownload = async () => {
+  //   if (!photoInfo?.hasPhoto) {
+  //     setError("No photo available to download.");
+  //     return;
+  //   }
+
+  //   setIsLoading(true);
+  //   setError("");
+
+  //   // Wait 3 seconds for images to load
+  //   console.log("⏳ Waiting 3 seconds for all images to load...");
+  //   await new Promise((resolve) => setTimeout(resolve, 3000));
+
+  //   try {
+  //     const currentCounter = localStorage.getItem("photoCounter") || "0";
+  //     const phone = userInfo?.phone;
+
+  //     if (!phone) {
+  //       throw new Error("User phone not found");
+  //     }
+
+  //     console.log("🎨 Creating polaroid manually on canvas (200 IQ method)...");
+
+  //     // Create canvas manually with exact dimensions
+  //     const canvas = document.createElement("canvas");
+  //     const ctx = canvas.getContext("2d");
+  //     canvas.width = 400;
+  //     canvas.height = 550;
+
+  //     // Fill with white background
+  //     ctx.fillStyle = "#ffffff";
+  //     ctx.fillRect(0, 0, 400, 550);
+
+  //     console.log("✅ Canvas created: 400x550");
+
+  //     // Helper function to load images
+  //     const loadImage = (src) => {
+  //       return new Promise((resolve, reject) => {
+  //         const img = new Image();
+  //         img.crossOrigin = "anonymous";
+  //         img.onload = () => {
+  //           console.log(`✅ Loaded image: ${src}`);
+  //           resolve(img);
+  //         };
+  //         img.onerror = (error) => {
+  //           console.warn(`⚠️ Failed to load: ${src}`, error);
+  //           resolve(null); // Don't reject, just return null
+  //         };
+  //         img.src = src;
+  //       });
+  //     };
+
+  //     // Load only the required images - BluePatch, User photo, and Frame
+  //     console.log("📥 Loading required images...");
+  //     const [frameImg, userImg, bluePatchImg] = await Promise.all([
+  //       loadImage("/assets/enddummy.png"),
+  //       loadImage(backgroundRemovedPhoto || userPhoto || ""),
+  //       loadImage("/assets/BluePatch.png"),
+  //     ]);
+
+  //     console.log("✅ All images loaded, drawing on canvas...");
+
+  //     // Draw BluePatch background first (z-index 5) - bottom layer
+  //     if (bluePatchImg) {
+  //       ctx.drawImage(bluePatchImg, 0, 0, 400, 550);
+  //       console.log("✅ BluePatch background drawn");
+  //     }
+
+  //     // Draw user photo (z-index 20) - middle layer
+  //     if (userImg) {
+  //       // CSS: top: "133px", left: "38px", width: "339px", height: "290px", scale: "1.23"
+  //       // The scale transforms around center, so we need to account for that
+  //       const originalX = 38;
+  //       const originalY = 149;
+  //       const originalW = 339;
+  //       const originalH = 290;
+  //       const scale = 1.32;
+
+  //       // Calculate final scaled dimensions
+  //       const scaledW = originalW * scale; // 339 * 1.32 = 447px
+  //       const scaledH = originalH * scale; // 290 * 1.32 = 383px
+
+  //       // Scale transforms from center, so adjust position
+  //       const finalX = originalX - (scaledW - originalW) / 2; // Approximately 38 - 54 = -16
+  //       const finalY = originalY - (scaledH - originalH) / 2; // Approximately 149 - 46.5 = 102.5
+
+  //       ctx.drawImage(userImg, finalX, finalY, scaledW, scaledH);
+  //       console.log("✅ User photo drawn with exact CSS scale positioning");
+  //     }
+
+  //     // Draw frame background (z-index 30) - top layer (acts as mask)
+  //     if (frameImg) {
+  //       ctx.drawImage(frameImg, 0, 0, 400, 550);
+  //       console.log("✅ Frame drawn on top - acts as mask");
+  //     }
+
+  //     console.log("🎨 Polaroid manually created on canvas with proper layering!");
+
+  //     // Convert to blob
+  //     const blob = await new Promise((resolve, reject) => {
+  //       canvas.toBlob(
+  //         (result) => {
+  //           if (result) resolve(result);
+  //           else reject(new Error("Failed to create blob"));
+  //         },
+  //         "image/png",
+  //         1.0
+  //       );
+  //     });
+
+  //     console.log("✅ Canvas converted to blob, size:", blob.size);
+
+  //     // Upload to S3
+  //     console.log("🚀 Uploading manually created polaroid to S3...");
+  //     const formData = new FormData();
+  //     formData.append(
+  //       "photo",
+  //       blob,
+  //       `${phone}_polaroid_manual_${currentCounter}.png`
+  //     );
+  //     formData.append("phone", phone);
+  //     formData.append("source", "manual_polaroid_creation");
+  //     formData.append("counter", currentCounter);
+
+  //     console.log("📤 FormData created:", {
+  //       filename: `${phone}_polaroid_manual_${currentCounter}.png`,
+  //       phone: phone,
+  //       source: "manual_polaroid_creation",
+  //       counter: currentCounter,
+  //       blobSize: blob.size,
+  //     });
+
+  //     const response = await fetch("https://artmetech.co.in/api/upload-photo", {
+  //       method: "POST",
+  //       body: formData,
+  //     });
+
+  //     console.log("📡 Response status:", response.status);
+
+  //     if (!response.ok) {
+  //       const errorText = await response.text();
+  //       console.error("❌ Upload failed:", response.status, errorText);
+  //       throw new Error(`Upload failed: ${response.status} - ${errorText}`);
+  //     }
+
+  //     const result = await response.json();
+  //     console.log("📊 Upload response:", result);
+
+  //     if (result.success) {
+  //       console.log(
+  //         "✅ Manual polaroid uploaded successfully:",
+  //         result.data.imageUrl
+  //       );
+
+  //       // Store new URL
+  //       localStorage.setItem("userPhoto", result.data.imageUrl);
+  //       console.log("💾 Stored new URL:", result.data.imageUrl);
+
+  //       // Generate QR
+  //       const qrUrl = await generateQRCode(result.data.imageUrl);
+  //       setQrCodeUrl(qrUrl);
+  //       setShowQR(true);
+  //       console.log("✅ QR generated and shown");
+  //     } else {
+  //       throw new Error(result.message || "Upload failed");
+  //     }
+  //   } catch (error) {
+  //     console.error("❌ Error:", error);
+  //     setError("Failed to create polaroid. Please try again.");
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+
   const handleDownload = async () => {
     if (!photoInfo?.hasPhoto) {
       setError("No photo available to download.");
@@ -334,21 +606,17 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
 
       // Draw user photo (z-index 20) - middle layer
       if (userImg) {
-        // CSS: top: "133px", left: "38px", width: "339px", height: "290px", scale: "1.23"
-        // The scale transforms around center, so we need to account for that
         const originalX = 38;
         const originalY = 149;
         const originalW = 339;
         const originalH = 290;
         const scale = 1.32;
 
-        // Calculate final scaled dimensions
-        const scaledW = originalW * scale; // 339 * 1.32 = 447px
-        const scaledH = originalH * scale; // 290 * 1.32 = 383px
+        const scaledW = originalW * scale;
+        const scaledH = originalH * scale;
 
-        // Scale transforms from center, so adjust position
-        const finalX = originalX - (scaledW - originalW) / 2; // Approximately 38 - 54 = -16
-        const finalY = originalY - (scaledH - originalH) / 2; // Approximately 149 - 46.5 = 102.5
+        const finalX = originalX - (scaledW - originalW) / 2;
+        const finalY = originalY - (scaledH - originalH) / 2;
 
         ctx.drawImage(userImg, finalX, finalY, scaledW, scaledH);
         console.log("✅ User photo drawn with exact CSS scale positioning");
@@ -376,22 +644,26 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
 
       console.log("✅ Canvas converted to blob, size:", blob.size);
 
-      // Upload to S3
-      console.log("🚀 Uploading manually created polaroid to S3...");
+      // 🔧 FIXED: Upload polaroid composite to REPLACE the bg-removed photo with same filename
+      console.log("🚀 Uploading polaroid composite to REPLACE bg-removed photo...");
+
+      // 🔧 IMPORTANT: Use the SAME filename as the bg-removed photo so it gets replaced
+      const bgRemovedFilename = `${phone}_bg_removed_${currentCounter}.png`;
+
       const formData = new FormData();
       formData.append(
         "photo",
         blob,
-        `${phone}_polaroid_manual_${currentCounter}.png`
+        bgRemovedFilename // 🔧 SAME filename = replacement
       );
       formData.append("phone", phone);
-      formData.append("source", "manual_polaroid_creation");
+      formData.append("source", "polaroid_composite_replacement");
       formData.append("counter", currentCounter);
 
       console.log("📤 FormData created:", {
-        filename: `${phone}_polaroid_manual_${currentCounter}.png`,
+        filename: bgRemovedFilename,
         phone: phone,
-        source: "manual_polaroid_creation",
+        source: "polaroid_composite_replacement",
         counter: currentCounter,
         blobSize: blob.size,
       });
@@ -414,13 +686,14 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
 
       if (result.success) {
         console.log(
-          "✅ Manual polaroid uploaded successfully:",
+          "✅ Polaroid composite uploaded successfully, REPLACED bg-removed photo:",
           result.data.imageUrl
         );
 
-        // Store new URL
+        // 🔧 FIXED: Update both userPhoto and backgroundRemovedPhoto to point to the new polaroid
         localStorage.setItem("userPhoto", result.data.imageUrl);
-        console.log("💾 Stored new URL:", result.data.imageUrl);
+        localStorage.setItem("userPhotoBgRemoved", result.data.imageUrl); // 🔧 Now both point to polaroid
+        console.log("💾 Updated both URLs to point to polaroid composite");
 
         // Generate QR
         const qrUrl = await generateQRCode(result.data.imageUrl);
