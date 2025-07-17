@@ -1272,20 +1272,34 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         {!showQR && (
           <button
             onClick={handleDownload}
-            className="text-white text-xl font-bold cursor-pointer py-3 w-80"
+            disabled={isLoading}
+            className="text-white text-xl font-bold cursor-pointer py-3 w-80 flex items-center justify-center gap-2"
             style={{
-              background:
-                "radial-gradient(40% 40% at 80% 100%, rgb(255 255 255 / 31%) 0%, rgb(0 51 255 / 31%) 59%, rgb(0 13 255 / 31%) 100%)",
+              background: isLoading
+                ? "radial-gradient(40% 40% at 80% 100%, rgb(128 128 128 / 31%) 0%, rgb(64 64 64 / 31%) 59%, rgb(32 32 32 / 31%) 100%)"
+                : "radial-gradient(40% 40% at 80% 100%, rgb(255 255 255 / 31%) 0%, rgb(0 51 255 / 31%) 59%, rgb(0 13 255 / 31%) 100%)",
               borderRadius: "4px",
               border: "1px solid rgba(255, 255, 255, 0.52)",
               borderStyle: "inside",
               boxShadow: "2px 2px 4px 0px rgba(0, 0, 0, 0.39)",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
-              opacity: "100%",
+              opacity: isLoading ? "70%" : "100%",
+              cursor: isLoading ? "not-allowed" : "pointer",
             }}
           >
-            {photoInfo?.hasPhoto ? "PROCEED TO PRINT" : "DOWNLOAD"}
+            {isLoading && (
+              <svg
+                className="animate-spin h-5 w-5"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+              </svg>
+            )}
+            {isLoading ? "CREATING POLAROID..." : (photoInfo?.hasPhoto ? "PROCEED TO PRINT" : "DOWNLOAD")}
           </button>
         )}
 
