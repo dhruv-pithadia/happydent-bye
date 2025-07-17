@@ -165,9 +165,8 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         setPhotoInfo(data.data);
         if (data.data.hasPhoto) {
           const currentCounter = localStorage.getItem("photoCounter") || "0";
-          const cacheBustedUrl = `${
-            data.data.imageUrl
-          }?counter=${currentCounter}&t=${Date.now()}`;
+          const cacheBustedUrl = `${data.data.imageUrl
+            }?counter=${currentCounter}&t=${Date.now()}`;
           console.log(
             "📷 API returned image, adding cache busting:",
             cacheBustedUrl
@@ -317,16 +316,23 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         });
       };
 
-      // Load all images in parallel
+      // Load all images in parallel - INCLUDING BluePatch.png
       console.log("📥 Loading all images...");
-      const [frameImg, redManImg, whattaImg, userImg] = await Promise.all([
+      const [frameImg, redManImg, whattaImg, userImg, bluePatchImg] = await Promise.all([
         loadImage("/assets/enddummy.png"),
         loadImage("/assets/red-man.png"),
         loadImage("/assets/chamking-whatta.png"),
         loadImage(backgroundRemovedPhoto || userPhoto || ""),
+        loadImage("/assets/BluePatch.png"), // NEW: Load BluePatch image
       ]);
 
       console.log("✅ All images loaded, drawing on canvas...");
+
+      // Draw BluePatch background first (z-index 5) - behind everything
+      if (bluePatchImg) {
+        ctx.drawImage(bluePatchImg, 0, 0, 400, 550);
+        console.log("✅ BluePatch background drawn");
+      }
 
       // Draw frame background (z-index 10)
       if (frameImg) {
@@ -417,7 +423,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         });
       }
 
-      console.log("🎨 Polaroid manually created on canvas!");
+      console.log("🎨 Polaroid manually created on canvas with BluePatch!");
 
       // Convert to blob
       const blob = await new Promise((resolve, reject) => {
@@ -714,9 +720,8 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
       const printWindow = window.open("", "_blank");
 
       // Create the filename with user's name
-      const fileName = `whatta-chamking-smile-${
-        userInfo?.userName?.replace(/\s+/g, "_") || "user"
-      }`;
+      const fileName = `whatta-chamking-smile-${userInfo?.userName?.replace(/\s+/g, "_") || "user"
+        }`;
 
       // Write HTML content with the S3 image
       printWindow.document.write(`
@@ -1250,7 +1255,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
               src="/assets/enddummy.png"
               alt="Polaroid Frame"
               className="absolute inset-0 w-full h-full object-cover z-50"
-              // style={{ width: "400px", height: "550px" }}
+            // style={{ width: "400px", height: "550px" }}
             />
 
             {/* Background-Removed Photo (positioned in the blue area) */}
