@@ -316,31 +316,23 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         });
       };
 
-      // Load all images in parallel - INCLUDING BluePatch.png
-      console.log("📥 Loading all images...");
-      const [frameImg, redManImg, whattaImg, userImg, bluePatchImg] = await Promise.all([
+      // Load only the required images - BluePatch, User photo, and Frame
+      console.log("📥 Loading required images...");
+      const [frameImg, userImg, bluePatchImg] = await Promise.all([
         loadImage("/assets/enddummy.png"),
-        loadImage("/assets/red-man.png"),
-        loadImage("/assets/chamking-whatta.png"),
         loadImage(backgroundRemovedPhoto || userPhoto || ""),
-        loadImage("/assets/BluePatch.png"), // NEW: Load BluePatch image
+        loadImage("/assets/BluePatch.png"),
       ]);
 
       console.log("✅ All images loaded, drawing on canvas...");
 
-      // Draw BluePatch background first (z-index 5) - behind everything
+      // Draw BluePatch background first (z-index 5) - bottom layer
       if (bluePatchImg) {
         ctx.drawImage(bluePatchImg, 0, 0, 400, 550);
         console.log("✅ BluePatch background drawn");
       }
 
-      // Draw frame background (z-index 10)
-      if (frameImg) {
-        ctx.drawImage(frameImg, 0, 0, 400, 550);
-        console.log("✅ Frame drawn");
-      }
-
-      // Draw user photo (z-index 20) - positioned exactly like in CSS
+      // Draw user photo (z-index 20) - middle layer
       if (userImg) {
         // CSS: top: "133px", left: "38px", width: "339px", height: "290px", scale: "1.23"
         // The scale transforms around center, so we need to account for that
@@ -351,79 +343,24 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         const scale = 1.32;
 
         // Calculate final scaled dimensions
-        const scaledW = originalW * scale; // 339 * 1.23 = 417px
-        const scaledH = originalH * scale; // 290 * 1.23 = 357px
+        const scaledW = originalW * scale; // 339 * 1.32 = 447px
+        const scaledH = originalH * scale; // 290 * 1.32 = 383px
 
         // Scale transforms from center, so adjust position
-        const finalX = originalX - (scaledW - originalW) / 2; // Approximately 38 - 39 = -1
-        const finalY = originalY - (scaledH - originalH) / 2; // Approximately 133 - 33.5 = 99.5
+        const finalX = originalX - (scaledW - originalW) / 2; // Approximately 38 - 54 = -16
+        const finalY = originalY - (scaledH - originalH) / 2; // Approximately 149 - 46.5 = 102.5
 
         ctx.drawImage(userImg, finalX, finalY, scaledW, scaledH);
         console.log("✅ User photo drawn with exact CSS scale positioning");
       }
 
-      // Draw red man (z-index 30) - positioned exactly like in CSS - OVERLAPPING user photo
-      if (redManImg) {
-        // CSS: top: "93px", left: "107px", width: "60px", height: "60px", scale: "5.5"
-        const originalX = 107;
-        const originalY = 92;
-        const originalWidth = 60;
-        const originalHeight = 60;
-
-        // Independent scaling
-        const scaleX = 3.8;
-        const scaleY = 5.4; // ← adjust this as needed to stretch vertically
-
-        const scaledWidth = originalWidth * scaleX;
-        const scaledHeight = originalHeight * scaleY;
-
-        // Adjust position to scale from center
-        const finalX = originalX - (scaledWidth - originalWidth) / 2;
-        const finalY = originalY - (scaledHeight - originalHeight) / 2;
-
-        // Draw with independent width and height
-        ctx.drawImage(redManImg, finalX, finalY, scaledWidth, scaledHeight);
-
-        console.log("✅ Red man drawn with independent scaleX/scaleY", {
-          x: finalX,
-          y: finalY,
-          width: scaledWidth,
-          height: scaledHeight,
-        });
+      // Draw frame background (z-index 30) - top layer (acts as mask)
+      if (frameImg) {
+        ctx.drawImage(frameImg, 0, 0, 400, 550);
+        console.log("✅ Frame drawn on top - acts as mask");
       }
 
-      // Draw whatta text (z-index 30) - positioned exactly like in CSS
-      if (whattaImg) {
-        // CSS: top: "44px", right: "100px", width: "60px", height: "60px", scale: "4.5"
-        const originalY = 44;
-        const rightMargin = 100;
-        const originalWidth = 60;
-        const originalHeight = 60;
-        const scaleX = 4.3; // keep X scale as-is
-        const scaleY = 2.5; // stretch more in Y direction
-
-        const scaledWidth = originalWidth * scaleX;
-        const scaledHeight = originalHeight * scaleY;
-
-        // Calculate X from right
-        const originalX = 400 - rightMargin - originalWidth;
-
-        // Since scaling is from center, adjust position
-        const finalX = originalX - (scaledWidth - originalWidth) / 2;
-        const finalY = originalY - (scaledHeight - originalHeight) / 2;
-
-        // Draw image with independent scaling
-        ctx.drawImage(whattaImg, finalX, finalY, scaledWidth, scaledHeight);
-
-        console.log("✅ Whatta text drawn with X:Y stretch", {
-          x: finalX,
-          y: finalY,
-          width: scaledWidth,
-          height: scaledHeight,
-        });
-      }
-
-      console.log("🎨 Polaroid manually created on canvas with BluePatch!");
+      console.log("🎨 Polaroid manually created on canvas with proper layering!");
 
       // Convert to blob
       const blob = await new Promise((resolve, reject) => {
