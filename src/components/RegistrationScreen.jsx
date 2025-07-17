@@ -124,7 +124,7 @@ const RegistrationScreen = ({ onComplete, onTerms, sessionData }) => {
           groupSize: groupSize,
           lensId:
             groupSize === "less"
-              ? "a4c89dd6-7e7a-4ec2-8390-9df9545b5994"
+              ? "a9fc3b3e-315a-4053-bbea-d21d1f25090f"
               : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf",
         },
         timestamp: new Date().toISOString(),

@@ -97,7 +97,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
     const selectedGroupSize = localStorage.getItem("selectedGroupSize");
     const selectedLensId =
       selectedGroupSize === "less"
-        ? "a4c89dd6-7e7a-4ec2-8390-9df9545b5994"
+        ? "a9fc3b3e-315a-4053-bbea-d21d1f25090f"
         : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
     if (phone && userId && userName) {
@@ -165,9 +165,8 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
         setPhotoInfo(data.data);
         if (data.data.hasPhoto) {
           const currentCounter = localStorage.getItem("photoCounter") || "0";
-          const cacheBustedUrl = `${
-            data.data.imageUrl
-          }?counter=${currentCounter}&t=${Date.now()}`;
+          const cacheBustedUrl = `${data.data.imageUrl
+            }?counter=${currentCounter}&t=${Date.now()}`;
           console.log(
             "📷 API returned image, adding cache busting:",
             cacheBustedUrl
@@ -714,9 +713,8 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
       const printWindow = window.open("", "_blank");
 
       // Create the filename with user's name
-      const fileName = `whatta-chamking-smile-${
-        userInfo?.userName?.replace(/\s+/g, "_") || "user"
-      }`;
+      const fileName = `whatta-chamking-smile-${userInfo?.userName?.replace(/\s+/g, "_") || "user"
+        }`;
 
       // Write HTML content with the S3 image
       printWindow.document.write(`
@@ -1245,7 +1243,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
               src="/assets/enddummy.png"
               alt="Polaroid Frame"
               className="absolute inset-0 w-full h-full object-cover z-10"
-              // style={{ width: "400px", height: "550px" }}
+            // style={{ width: "400px", height: "550px" }}
             />
 
             <img
