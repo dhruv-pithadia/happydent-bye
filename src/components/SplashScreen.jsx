@@ -33,8 +33,8 @@ class CameraManager {
           front: {
             video: {
               facingMode: { exact: "user" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              // width: { ideal: 1280 },
+              // height: { ideal: 720 },
               frameRate: { ideal: 60 }, // MISSING: This ensures smooth 60fps
             },
             audio: true, // Your working code has this as true
@@ -42,8 +42,8 @@ class CameraManager {
           back: {
             video: {
               facingMode: { exact: "environment" },
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              // width: { ideal: 1280 },
+              // height: { ideal: 720 },
               frameRate: { ideal: 60 },
             },
             audio: true,
@@ -51,8 +51,8 @@ class CameraManager {
           desktop: {
             video: {
               facingMode: "user",
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
+              // width: { ideal: 1280 },
+              // height: { ideal: 720 },
               frameRate: { ideal: 60 },
             },
             audio: true,

@@ -7,6 +7,160 @@ const isTablet =
 const isSohamDevice =
   window.innerWidth >= 350 && window.innerWidth <= 414 && !isTablet;
 
+// 🎯 SETTINGS CONFIGURATION (Added from working code)
+const Settings = {
+  camera: {
+    fps: 60,
+    constraints: {
+      front: {
+        video: {
+          facingMode: { exact: "user" },
+        },
+        audio: true,
+      },
+      back: {
+        video: {
+          facingMode: { exact: "environment" },
+        },
+        audio: true,
+      },
+      desktop: {
+        video: {
+          facingMode: "user",
+        },
+        audio: true,
+      },
+    },
+  },
+  recording: {
+    mimeType: "video/mp4",
+    fps: 60,
+    outputFileName: "recording.mp4",
+  },
+};
+
+// 📹 CAMERA MANAGER CLASS (Added from working code)
+class CameraManager {
+  constructor() {
+    this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    this.isBackFacing = false;
+    this.mediaStream = null;
+  }
+
+  async initializeCamera() {
+    try {
+      if (!this.isMobile) {
+        document.body.classList.add("desktop");
+      }
+
+      console.log("📹 Requesting camera access...");
+      this.mediaStream = await navigator.mediaDevices.getUserMedia(
+        this.getConstraints()
+      );
+
+      if (!this.mediaStream || !this.mediaStream.active) {
+        throw new Error("Media stream is not active after creation");
+      }
+
+      console.log("✅ Camera stream active:", this.mediaStream.active);
+      return this.mediaStream;
+    } catch (error) {
+      console.error("❌ Camera initialization failed:", error);
+      throw new Error(`Camera access failed: ${error.message}`);
+    }
+  }
+
+  getConstraints() {
+    return this.isMobile
+      ? this.isBackFacing
+        ? Settings.camera.constraints.back
+        : Settings.camera.constraints.front
+      : Settings.camera.constraints.desktop;
+  }
+
+  async updateCamera(session) {
+    this.isBackFacing = !this.isBackFacing;
+
+    if (this.mediaStream) {
+      session.pause();
+      this.mediaStream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      this.mediaStream = null;
+    }
+
+    try {
+      this.mediaStream = await navigator.mediaDevices.getUserMedia(
+        this.getConstraints()
+      );
+
+      const source = createMediaStreamSource(this.mediaStream, {
+        cameraType: this.isBackFacing ? "environment" : "user",
+        disableSourceAudio: false,
+      });
+
+      await session.setSource(source);
+      if (!this.isBackFacing) {
+        source.setTransform(Transform2D.MirrorX);
+      }
+      await session.play();
+      return source;
+    } catch (error) {
+      console.error("Failed to get media stream:", error);
+      throw error;
+    }
+  }
+}
+
+class MediaRecorderManager {
+  constructor() {
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+    this.audioVideoStream = null;
+    this.canvasStream = null;
+  }
+
+  // This method is crucial - it sets up canvas stream which affects performance
+  async initializeCanvasStream(liveRenderTarget, constraints) {
+    try {
+      // Get audio stream
+      this.audioVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const audioTrack = this.audioVideoStream.getAudioTracks()[0];
+
+      // Create canvas stream with proper FPS - THIS IS KEY FOR SMOOTH DETECTION
+      this.canvasStream = liveRenderTarget.captureStream(Settings.recording.fps);
+      if (audioTrack) {
+        this.canvasStream.addTrack(audioTrack);
+      }
+
+      console.log("✅ Canvas stream initialized for smooth performance");
+      return this.canvasStream;
+    } catch (error) {
+      console.error("❌ Failed to initialize canvas stream:", error);
+      throw error;
+    }
+  }
+
+  resetRecordingVariables() {
+    this.mediaRecorder = null;
+    this.recordedChunks = [];
+
+    if (this.audioVideoStream) {
+      this.audioVideoStream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      this.audioVideoStream = null;
+    }
+
+    if (this.canvasStream) {
+      this.canvasStream.getTracks().forEach((track) => {
+        track.stop();
+      });
+      this.canvasStream = null;
+    }
+  }
+}
+
 // Enhanced Canvas Management - NO CONTEXT ACCESS
 const enhanceCanvas = (canvas) => {
   if (!canvas) return;
@@ -107,6 +261,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
 
   const [isUploading, setIsUploading] = useState(false);
   const [showEndScreen, setShowEndScreen] = useState(false);
+  const mediaRecorderRef = useRef(new MediaRecorderManager());
 
   // 🔴 RED DEMON DETECTION: Ultra-efficient pixel scanning
   const [redDemonDetection, setRedDemonDetection] = useState({
@@ -658,246 +813,37 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
     }
   };
 
-  // 🔥 CREATE COMPLETELY FRESH AR SESSION
-  // const createCompletelyFreshARSession = async () => {
-  //   try {
-  //     console.log("🔥 Creating completely fresh AR session...");
-
-  //     // Clear any existing cache completely
-  //     if (window.snapARPreloadCache) {
-  //       const cache = window.snapARPreloadCache;
-
-  //       // Stop everything properly
-  //       if (cache.session) {
-  //         try {
-  //           await cache.session.pause();
-  //           console.log("🛑 Previous session paused");
-  //         } catch (e) {
-  //           console.log("Session already stopped");
-  //         }
-  //       }
-
-  //       if (cache.mediaStream) {
-  //         cache.mediaStream.getTracks().forEach((track) => {
-  //           track.stop();
-  //           console.log("🛑 Media track stopped:", track.kind);
-  //         });
-  //       }
-
-  //       // Add a small delay to ensure cleanup is complete
-  //       await new Promise((resolve) => setTimeout(resolve, 500));
-  //     }
-
-  //     // 🆕 RECREATE ENTIRE CACHE AND SESSION
-  //     window.snapARPreloadCache = {
-  //       cameraKit: null,
-  //       lenses: null,
-  //       cameraManager: null,
-  //       mediaStream: null,
-  //       session: null,
-  //       source: null,
-  //       appliedLens: null,
-  //       isPreloaded: false,
-  //       isPreloading: false,
-  //       preloadProgress: 0,
-  //       error: null,
-  //       sessionReady: false,
-  //       needsCompleteRestart: false,
-  //     };
-
-  //     const cache = window.snapARPreloadCache;
-  //     cache.isPreloading = true;
-
-  //     console.log("🔥 Step 1: Initialize Camera Kit...");
-  //     const { bootstrapCameraKit } = await import("@snap/camera-kit");
-  //     cache.cameraKit = await bootstrapCameraKit({
-  //       apiToken: apiToken,
-  //     });
-
-  //     console.log("🔥 Step 2: Get camera stream...");
-  //     // Create camera manager with better error handling
-  //     class CameraManager {
-  //       constructor() {
-  //         this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  //         this.isBackFacing = false;
-  //         this.mediaStream = null;
-  //       }
-
-  //       async initializeCamera() {
-  //         try {
-  //           if (!this.isMobile) {
-  //             document.body.classList.add("desktop");
-  //           }
-
-  //           console.log("📹 Requesting camera access...");
-  //           this.mediaStream = await navigator.mediaDevices.getUserMedia(
-  //             this.getConstraints()
-  //           );
-
-  //           // Verify the stream is active
-  //           if (!this.mediaStream || !this.mediaStream.active) {
-  //             throw new Error("Media stream is not active after creation");
-  //           }
-
-  //           console.log("✅ Camera stream active:", this.mediaStream.active);
-  //           return this.mediaStream;
-  //         } catch (error) {
-  //           console.error("❌ Camera initialization failed:", error);
-  //           throw new Error(`Camera access failed: ${error.message}`);
-  //         }
-  //       }
-
-  //       getConstraints() {
-  //         const settings = {
-  //           camera: {
-  //             fps: 60, // This is crucial - you're hardcoding 60 but should use this setting
-  //             constraints: {
-  //               front: {
-  //                 video: {
-  //                   facingMode: { exact: "user" },
-  //                   width: { ideal: 1280 },
-  //                   height: { ideal: 720 },
-  //                   frameRate: { ideal: 60 }, // MISSING: This ensures smooth 60fps
-  //                 },
-  //                 audio: true, // Your working code has this as true
-  //               },
-  //               back: {
-  //                 video: {
-  //                   facingMode: { exact: "environment" },
-  //                   width: { ideal: 1280 },
-  //                   height: { ideal: 720 },
-  //                   frameRate: { ideal: 60 },
-  //                 },
-  //                 audio: true,
-  //               },
-  //               desktop: {
-  //                 video: {
-  //                   facingMode: "user",
-  //                   width: { ideal: 1280 },
-  //                   height: { ideal: 720 },
-  //                   frameRate: { ideal: 60 },
-  //                 },
-  //                 audio: true,
-  //               },
-  //             },
-  //           },
-  //         };
-  //         return this.isMobile
-  //           ? this.isBackFacing
-  //             ? settings.camera.constraints.back
-  //             : settings.camera.constraints.front
-  //           : settings.camera.constraints.desktop;
-  //       }
-  //     }
-
-  //     cache.cameraManager = new CameraManager();
-  //     cache.mediaStream = await cache.cameraManager.initializeCamera();
-
-  //     console.log("🔥 Step 3: Load both lenses...");
-  //     const actualLensGroupId = "b2aafdd8-cb11-4817-9df9-835b36d9d5a7";
-  //     const lessLensId = "0eeedbf6-a026-4224-9942-554f7cd71ebf";
-  //     const moreLensId = "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
-
-  //     // Load both lenses
-  //     const lessLens = await cache.cameraKit.lensRepository.loadLens(
-  //       lessLensId,
-  //       actualLensGroupId
-  //     );
-  //     const moreLens = await cache.cameraKit.lensRepository.loadLens(
-  //       moreLensId,
-  //       actualLensGroupId
-  //     );
-
-  //     cache.lenses = {
-  //       less: lessLens,
-  //       more: moreLens,
-  //       loaded: true,
-  //     };
-  //     console.log("🔥 Step 4: Create session...");
-  //     cache.session = await cache.cameraKit.createSession();
-
-  //     console.log("🔥 Step 5: Create and configure source...");
-
-  //     // Verify media stream is still active before creating source
-  //     if (!cache.mediaStream || !cache.mediaStream.active) {
-  //       throw new Error("Media stream became inactive before source creation");
-  //     }
-
-  //     cache.source = createMediaStreamSource(cache.mediaStream, {
-  //       cameraType: "user",
-  //       disableSourceAudio: true, // Disable audio to avoid issues
-  //     });
-
-  //     console.log("🔥 Step 6: Configure session...");
-  //     await cache.session.setSource(cache.source);
-  //     cache.source.setTransform(Transform2D.MirrorX);
-  //     await cache.source.setRenderSize(window.innerWidth, window.innerHeight);
-  //     await cache.session.setFPSLimit(60);
-
-  //     console.log("🔥 Step 7: Apply selected lens based on user choice...");
-  //     // Get the selected group size from localStorage or userData
-  //     const selectedGroupSize =
-  //       userData?.groupSize ||
-  //       localStorage.getItem("selectedGroupSize") ||
-  //       "less";
-  //     const selectedLens = cache.lenses[selectedGroupSize];
-
-  //     if (selectedLens) {
-  //       console.log(`🎯 Applying ${selectedGroupSize} lens`);
-  //       await cache.session.applyLens(selectedLens);
-  //       cache.appliedLens = selectedLens;
-  //     } else {
-  //       console.warn("⚠️ Selected lens not found, using default");
-  //       await cache.session.applyLens(cache.lenses.less);
-  //       cache.appliedLens = cache.lenses.less;
-  //     }
-
-  //     cache.isPreloaded = true;
-  //     cache.sessionReady = true;
-  //     cache.isPreloading = false;
-
-  //     console.log("🔥 Step 8: Setup canvas and start...");
-  //     if (cache.session.output?.live) {
-  //       await setupCanvasAndStart(cache.session.output.live, cache.session);
-  //     } else {
-  //       throw new Error("No canvas after fresh session creation");
-  //     }
-  //   } catch (error) {
-  //     console.error("❌ Fresh AR session creation failed:", error);
-
-  //     // Clean up on error
-  //     if (window.snapARPreloadCache?.mediaStream) {
-  //       window.snapARPreloadCache.mediaStream
-  //         .getTracks()
-  //         .forEach((track) => track.stop());
-  //     }
-
-  //     throw new Error(`Fresh session creation failed: ${error.message}`);
-  //   }
-  // };
-
-  // Replace your createCompletelyFreshARSession with this corrected version
+  // 🔥 CREATE COMPLETELY FRESH AR SESSION (Updated to use external CameraManager)
   const createCompletelyFreshARSession = async () => {
     try {
-      console.log("🔥 Creating AR session with working implementation flow...");
+      console.log("🔥 Creating completely fresh AR session...");
 
-      // Clear existing cache
+      // Clear any existing cache completely
       if (window.snapARPreloadCache) {
         const cache = window.snapARPreloadCache;
+
+        // Stop everything properly
         if (cache.session) {
           try {
             await cache.session.pause();
+            console.log("🛑 Previous session paused");
           } catch (e) {
             console.log("Session already stopped");
           }
         }
+
         if (cache.mediaStream) {
-          cache.mediaStream.getTracks().forEach((track) => track.stop());
+          cache.mediaStream.getTracks().forEach((track) => {
+            track.stop();
+            console.log("🛑 Media track stopped:", track.kind);
+          });
         }
+
+        // Add a small delay to ensure cleanup is complete
         await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
-      // 🆕 RECREATE CACHE (exactly like working code)
+      // 🆕 RECREATE ENTIRE CACHE AND SESSION
       window.snapARPreloadCache = {
         cameraKit: null,
         lenses: null,
@@ -917,24 +863,23 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
       const cache = window.snapARPreloadCache;
       cache.isPreloading = true;
 
-      // 🚨 STEP 1: Initialize Camera Kit (exactly like working code)
       console.log("🔥 Step 1: Initialize Camera Kit...");
       const { bootstrapCameraKit } = await import("@snap/camera-kit");
       cache.cameraKit = await bootstrapCameraKit({
         apiToken: apiToken,
       });
 
-      // 🚨 STEP 2: Initialize Camera Manager (use corrected version)
-      console.log("🔥 Step 2: Initialize Camera Manager...");
+      console.log("🔥 Step 2: Get camera stream...");
+      // Use external CameraManager class instead of inline definition
       cache.cameraManager = new CameraManager();
       cache.mediaStream = await cache.cameraManager.initializeCamera();
 
-      // 🚨 STEP 3: Load lenses (exactly like working code)
-      console.log("🔥 Step 3: Load lenses...");
+      console.log("🔥 Step 3: Load both lenses...");
       const actualLensGroupId = "b2aafdd8-cb11-4817-9df9-835b36d9d5a7";
       const lessLensId = "0eeedbf6-a026-4224-9942-554f7cd71ebf";
       const moreLensId = "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
+      // Load both lenses
       const lessLens = await cache.cameraKit.lensRepository.loadLens(
         lessLensId,
         actualLensGroupId
@@ -949,31 +894,31 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
         more: moreLens,
         loaded: true,
       };
-
-      // 🚨 STEP 4: Create session (exactly like working code)
       console.log("🔥 Step 4: Create session...");
       cache.session = await cache.cameraKit.createSession();
 
-      // 🚨 STEP 5: Create and configure source (CORRECTED)
-      console.log("🔥 Step 5: Create source...");
+      console.log("🔥 Step 5: Create and configure source...");
+
+      // Verify media stream is still active before creating source
       if (!cache.mediaStream || !cache.mediaStream.active) {
         throw new Error("Media stream became inactive before source creation");
       }
 
+      // 🚨 CORRECTED: Use false like working code for better performance
       cache.source = createMediaStreamSource(cache.mediaStream, {
         cameraType: "user",
-        disableSourceAudio: false, // 🚨 CORRECTED: Should be false like working code
+        disableSourceAudio: false, // Changed from true to false
       });
 
-      // 🚨 STEP 6: Configure session (exactly like working code)
       console.log("🔥 Step 6: Configure session...");
       await cache.session.setSource(cache.source);
       cache.source.setTransform(Transform2D.MirrorX);
       await cache.source.setRenderSize(window.innerWidth, window.innerHeight);
-      await cache.session.setFPSLimit(Settings.camera.fps); // 🚨 Use Settings like working code
+      // 🚨 CORRECTED: Use Settings.camera.fps instead of hardcoded 60
+      await cache.session.setFPSLimit(Settings.camera.fps);
 
-      // 🚨 STEP 7: Apply lens (exactly like working code timing)
-      console.log("🔥 Step 7: Apply lens...");
+      console.log("🔥 Step 7: Apply selected lens based on user choice...");
+      // Get the selected group size from localStorage or userData
       const selectedGroupSize =
         userData?.groupSize ||
         localStorage.getItem("selectedGroupSize") ||
@@ -984,20 +929,22 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
         console.log(`🎯 Applying ${selectedGroupSize} lens`);
         await cache.session.applyLens(selectedLens);
         cache.appliedLens = selectedLens;
+      } else {
+        console.warn("⚠️ Selected lens not found, using default");
+        await cache.session.applyLens(cache.lenses.less);
+        cache.appliedLens = cache.lenses.less;
       }
 
-      // 🚨 STEP 8: Mark as ready (exactly like working code)
       cache.isPreloaded = true;
       cache.sessionReady = true;
       cache.isPreloading = false;
 
-      console.log("🔥 Step 9: Setup canvas and start...");
+      console.log("🔥 Step 8: Setup canvas and start...");
       if (cache.session.output?.live) {
         await setupCanvasAndStart(cache.session.output.live, cache.session);
       } else {
         throw new Error("No canvas after fresh session creation");
       }
-
     } catch (error) {
       console.error("❌ Fresh AR session creation failed:", error);
 
@@ -1044,7 +991,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
     canvas.dataset.monitorInterval = monitorInterval;
   };
 
-  // 🎯 SETUP CANVAS AND START SESSION
+  // 🎯 SETUP CANVAS AND START SESSION (Updated with MediaRecorderManager integration)
   const setupCanvasAndStart = async (arCanvas, session) => {
     try {
       console.log("🎯 Setting up canvas with enhanced stability...");
@@ -1079,8 +1026,20 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
       // 🎨 ENHANCE CANVAS WITH STABILITY FEATURES
       enhanceCanvas(arCanvas);
 
-      // Apply lens if needed
+      // 🎯 CRITICAL: Initialize canvas stream for smooth performance (from working code)
+      const mediaRecorder = mediaRecorderRef.current;
       const cache = window.snapARPreloadCache;
+
+      if (cache && cache.cameraManager) {
+        try {
+          await mediaRecorder.initializeCanvasStream(arCanvas, cache.cameraManager.getConstraints());
+          console.log("✅ Canvas stream initialized for smooth detection");
+        } catch (error) {
+          console.warn("⚠️ Canvas stream initialization failed:", error);
+        }
+      }
+
+      // Apply lens if needed
       if (cache && cache.lenses && userData?.groupSize) {
         const selectedLens = cache.lenses[userData.groupSize];
         if (selectedLens && !cache.appliedLens) {
@@ -1164,6 +1123,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
     });
   };
 
+  // 🧹 CLEANUP (Updated with MediaRecorderManager cleanup)
   const cleanup = () => {
     // Stop red demon detection
     stopRedDemonDetection();
@@ -1179,6 +1139,12 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
       arStartTimerRef.current = null;
     }
 
+    // 🆕 ADD: Clean up media recorder (from working code)
+    const mediaRecorder = mediaRecorderRef.current;
+    if (mediaRecorder) {
+      mediaRecorder.resetRecordingVariables();
+    }
+
     // Clean up canvas monitoring
     if (canvasRef.current && canvasRef.current.dataset.monitorInterval) {
       clearInterval(canvasRef.current.dataset.monitorInterval);
@@ -1192,7 +1158,7 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
       setSseConnected(false);
     }
 
-    console.log("🧹 Cleaned up AR component with red demon detection");
+    console.log("🧹 Cleaned up AR component with all resources");
   };
 
   const skipToEnd = () => {
@@ -1609,17 +1575,6 @@ const SnapARExperience = ({ onComplete, userData, apiToken }) => {
               </button>
             </div>
           )}
-
-          {/* {(autoCapturing || isUploading || isRemovingBg) && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-20">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-white mx-auto mb-4 drop-shadow-lg"></div>
-                <div className="animate-pulse text-white text-xl font-bold drop-shadow-lg">
-                  {compositeStatus || "Processing your image..."}
-                </div>
-              </div>
-            </div>
-          )} */}
         </div>
       </div>
     </ARErrorBoundary>
