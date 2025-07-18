@@ -28,17 +28,33 @@ class CameraManager {
   getConstraints() {
     const settings = {
       camera: {
+        fps: 60, // This is crucial - you're hardcoding 60 but should use this setting
         constraints: {
           front: {
-            video: { facingMode: "user" },
-            audio: true,
+            video: {
+              facingMode: { exact: "user" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 60 }, // MISSING: This ensures smooth 60fps
+            },
+            audio: true, // Your working code has this as true
           },
           back: {
-            video: { facingMode: "environment" },
+            video: {
+              facingMode: { exact: "environment" },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 60 },
+            },
             audio: true,
           },
           desktop: {
-            video: { facingMode: "user" },
+            video: {
+              facingMode: "user",
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 60 },
+            },
             audio: true,
           },
         },
