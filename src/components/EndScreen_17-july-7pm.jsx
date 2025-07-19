@@ -97,7 +97,7 @@ const EndScreen = ({ onRetry, onRetryAR }) => {
     const selectedGroupSize = localStorage.getItem("selectedGroupSize");
     const selectedLensId =
       selectedGroupSize === "less"
-        ? "0eeedbf6-a026-4224-9942-554f7cd71ebf"
+        ? "7d401d87-ff3a-40df-ab33-8fbbb92fe199"
         : "32f1cc6e-cb6f-4f2f-be03-08f51b8feddf";
 
     if (phone && userId && userName) {
